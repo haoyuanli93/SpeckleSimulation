@@ -1,0 +1,36 @@
+units       metal
+dimension   3
+boundary    p p p
+atom_style  atomic
+
+lattice     diamond 5.658 # parameter is initial density
+region      box block 0 256 0 256 0 256
+create_box      1 box
+create_atoms  1 box
+mass        1 72.64
+
+velocity    all create 298.0 12345 dist gaussian
+
+pair_style      tersoff
+pair_coeff      * *  Ge.tersoff Ge
+
+neighbor    2.0 bin
+neigh_modify    every 10 delay 0 check yes
+
+## save time averaged pressure and temperature to file
+fix Ge_pressure all ave/time 1 10 10 c_thermo_press &
+    file output/pressure.out mode scalar
+fix Ge_temp all ave/time 1 10 10 c_thermo_temp &
+    file output/temperature.out mode scalar
+
+
+thermo_style custom step temp press vol density f_Ge_temp f_Ge_pressure pe ke etotal
+thermo 10 #print every 10 MDsteps
+thermo_modify norm no flush yes
+
+fix Ge_nose all nvt temp 298.0 298.0  $(100.0*dt)
+restart 1500 output/T298.restart.*
+dump Ge_dump all custom 1 output/T298.dump.* id xu yu zu
+dump_modify Ge_dump sort id
+timestep 0.01
+run 1500
