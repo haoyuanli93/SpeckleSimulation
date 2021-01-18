@@ -1,6 +1,11 @@
 import numpy as np
 
+Thomson_scattering_length = 2.818e-9  # um
 
+
+######################################################
+#      Define detector class and functions
+######################################################
 class Detector2D:
     def __init__(self,
                  pixel_size=None,
@@ -49,6 +54,9 @@ class Detector2D:
         self.solid_angles = np.zeros((self.pixel_numbers[0],
                                       self.pixel_numbers[1]))
 
+        self.projected_pixel_area = np.zeros((self.pixel_numbers[0],
+                                              self.pixel_numbers[1]))
+
         #####################################################
         #    Calculate the quantities listed above
         #####################################################
@@ -93,9 +101,11 @@ class Detector2D:
         # Calculate the projection cos angle for each pixel
         cosines = np.dot(self.pixel_direction, self.normal_direction)
 
+        # Calculate the pixel area projected to the tangent direction of the corresponding spere.
+        self.projected_pixel_area = np.prod(self.pixel_size) * cosines
+
         # Calculate the solid angle
-        self.solid_angles = np.prod(self.pixel_size) / np.square(self.pixel_distance)
-        self.solid_angles *= cosines
+        self.solid_angles = self.projected_pixel_area / np.square(self.pixel_distance)
 
 
 def get_detector_pixel_q_vectors(detectors, k_vec_in):
@@ -138,3 +148,37 @@ def get_polarization_correction(detector, polarization_in=np.array([0., 1., 0.])
                                                         polarization)),
                                      axis=-1)
     return polarization_correction
+
+
+def get_efield_amplitude(efield_phase, detector, k_in, efield_in):
+    """
+    Convert the calculated electric field phase into the electric field amplitude
+    :param efield_phase:
+    :param detector:
+    :param k_in:
+    :param efield_in:
+    :return:
+    """
+    k_len = np.linalg.norm(k_in)
+    pre_fectors = efield_in * np.exp(1.j * detector.pixel_distance * k_len) / detector.pixel_distance
+    e_field_amplitude = np.multiply(efield_phase, pre_fectors)
+    return e_field_amplitude
+
+
+def get_ideal_detector_image(pixel_projected_area, polarization_correction, e_field_amplitude):
+    """
+    Convert the electric field amplitude to the measured intensity by each pixel on the detector.
+    Basically, one adds polarization correction, pixel area restrictions
+    and Thomson_scattering_length ** 2
+
+    :param pixel_projected_area:
+    :param polarization_correction:
+    :param e_field_amplitude:
+    :return:
+    """
+    holder = e_field_amplitude.real ** 2 + e_field_amplitude.imag ** 2
+    holder = np.multiply(pixel_projected_area, holder)
+    holder = np.multiply(polarization_correction, holder)
+    holder *= np.square(Thomson_scattering_length)
+
+    return holder
