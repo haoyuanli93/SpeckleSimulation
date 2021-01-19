@@ -78,11 +78,13 @@ class Detector2D:
 
     def __get_pixel_positions(self):
         # Create the relative pixel position with respect to the center
-        x_coor_tmp = np.arange(self.pixel_numbers[0])
+        x_coor_tmp = np.arange(self.pixel_numbers[0]).astype(np.float64)
         x_coor_tmp -= (float(self.pixel_numbers[0]) / 2. - 0.5)
+        x_coor_tmp *= self.pixel_size[0]
 
-        y_coor_tmp = np.arange(self.pixel_numbers[1])
+        y_coor_tmp = np.arange(self.pixel_numbers[1]).astype(np.float64)
         y_coor_tmp -= (float(self.pixel_numbers[1]) / 2. - 0.5)
+        y_coor_tmp *= self.pixel_size[1]
 
         # Create the pixel position with respect to the detector center
         self.pixel_positions[:, :, :] += np.outer(x_coor_tmp, self._edge_direction_1)[:, np.newaxis, :]
@@ -123,7 +125,7 @@ def get_detector_pixel_q_vectors(detectors, k_vec_in):
     k_direction = k_vec_in / k_len
 
     # Get the q vector for each pixel
-    pixel_q_vec = detectors.pixel_direction - k_direction[np.newaxis, np.newaxis, :]
+    pixel_q_vec = k_direction[np.newaxis, np.newaxis, :] - detectors.pixel_direction
     pixel_q_vec *= k_len
 
     # Get the length of the q vectors
@@ -160,7 +162,8 @@ def get_efield_amplitude(efield_phase, detector, k_in, efield_in):
     :return:
     """
     k_len = np.linalg.norm(k_in)
-    pre_fectors = efield_in * np.exp(1.j * detector.pixel_distance * k_len) / detector.pixel_distance
+    # Notice that the sign of the phase is different from that of the interfering phase in gpu calculation
+    pre_fectors = efield_in * np.exp(-1.j * detector.pixel_distance * k_len) / detector.pixel_distance
     e_field_amplitude = np.multiply(efield_phase, pre_fectors)
     return e_field_amplitude
 

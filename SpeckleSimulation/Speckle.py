@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 
-@cuda.jit("void(int64, int64, float64[:,3], float64[:,3], complex128[:])")
+@cuda.jit("void(int64, int64, float64[:,:], float64[:,:], complex128[:])")
 def _get_efield_phase(atom_num, q_num, atom_positions, wavevectors, e_field_phase):
     """
     Notice that this function only calculate the phase part of the diffracted field.
