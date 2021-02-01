@@ -8,3 +8,5 @@ Wavevector is defined to be
 
     2 pi / wavelength. 
 
+Wavenumber is defined to be
+    1 / wavelength  
